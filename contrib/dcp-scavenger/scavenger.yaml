@@ -1,0 +1,73 @@
+# Opt-in scavenger workload. Apply it by hand.
+# Do not copy this file into the server manifests directory: k3s applies
+# everything there automatically, and these pods phone home to the public
+# DCP scheduler.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dcp-scavenger
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: dcp-scavenger
+value: -1000
+globalDefault: false
+preemptionPolicy: Never
+description: >-
+  Opportunistic DCP workers. A normal pod (priority 0) or any k3s system pod
+  may preempt them. These workers never preempt other pods.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dcp-worker
+  namespace: dcp-scavenger
+  labels:
+    app: dcp-worker
+spec:
+  # More replicas than a node can run. The scheduler admits the slices that
+  # fit in unrequested allocatable CPU and memory. The rest stay Pending
+  # until a preempting pod exits.
+  replicas: 16
+  revisionHistoryLimit: 1
+  selector:
+    matchLabels:
+      app: dcp-worker
+  template:
+    metadata:
+      labels:
+        app: dcp-worker
+    spec:
+      priorityClassName: dcp-scavenger
+      terminationGracePeriodSeconds: 15
+      automountServiceAccountToken: false
+      hostNetwork: false
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: dcp-worker
+      containers:
+        - name: dcp-worker
+          image: distributivenetwork/dcp-worker:latest
+          imagePullPolicy: IfNotPresent
+          # Published image is linux/amd64. --cores overrides the host CPU
+          # count the worker would otherwise detect; a cgroup quota does not
+          # change that count. The second field turns GPU advertising off.
+          args:
+            - --cores=1,0
+            - --max-sandboxes=1
+            - --output=text
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          securityContext:
+            privileged: false

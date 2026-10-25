@@ -1,0 +1,17 @@
+# Stand-in for a new k3s task. Priority defaults to 0, which is above
+# dcp-scavenger (-1000), so the scheduler preempts worker slices until
+# this request fits.
+apiVersion: v1
+kind: Pod
+metadata:
+  name: scavenger-task
+  namespace: default
+spec:
+  restartPolicy: Never
+  containers:
+    - name: pause
+      image: rancher/mirrored-pause:3.10.2
+      resources:
+        requests:
+          cpu: "1"
+          memory: 1Gi
