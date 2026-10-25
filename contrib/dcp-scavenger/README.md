@@ -18,9 +18,24 @@ The image is `distributivenetwork/dcp-worker:latest` (linux/amd64). An unregiste
 
 Replicas are higher than a node can hold. Slices that fit run. The rest stay `Pending`. `topologySpreadConstraints` prefer an even spread across nodes and still allow a larger node to take extra slices.
 
+## Dev container
+
+Open this repo in the dev container defined by [`.devcontainer/devcontainer.json`](../../.devcontainer/devcontainer.json). The container is privileged, which k3s needs in order to run here. The image carries k3s v1.36.5+k3s1, the stable release, and `start-k3s.sh` brings up one server. Traefik and ServiceLB are left out. The kubelet reserves capacity above 2 CPUs and 5GiB, so a large machine still shows pending worker slices and preemption. `kubectl` is on `PATH` and uses `/etc/rancher/k3s/k3s.yaml`.
+
+The worker image is linux/amd64. Use an amd64 Docker host.
+
+When the container reports the node Ready:
+
+```sh
+cd contrib/dcp-scavenger
+kubectl apply -f scavenger.yaml
+```
+
+Continue from step 2 below. Logs from the server are in `/var/log/k3s-devcontainer.log`.
+
 ## Demo
 
-Use one k3s node with at least 2 CPUs and 4GiB of RAM, and outbound HTTPS so a worker can reach the public DCP scheduler. CoreDNS and metrics-server each request `100m` CPU and `70Mi` memory, so a node of that size should still run at least two slices.
+Use one k3s node with at least 2 CPUs and 4GiB of RAM, and outbound HTTPS so a worker can reach the public DCP scheduler. CoreDNS and metrics-server each request `100m` CPU and `70Mi` memory, so a node of that size should still run at least two slices. The dev container above is one such node.
 
 1. Start k3s and apply the scavenger:
 

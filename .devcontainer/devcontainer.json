@@ -1,0 +1,23 @@
+{
+    "name": "k3s DCP scavenger",
+    "build": {
+        "dockerfile": "Dockerfile",
+        "context": "."
+    },
+    "privileged": true,
+    "securityOpt": [
+        "seccomp=unconfined",
+        "apparmor=unconfined"
+    ],
+    "remoteUser": "vscode",
+    "containerEnv": {
+        "KUBECONFIG": "/etc/rancher/k3s/k3s.yaml"
+    },
+    "postStartCommand": ["sudo", "/usr/local/bin/start-k3s.sh"],
+    "waitFor": "postStartCommand",
+    "hostRequirements": {
+        "cpus": 2,
+        "memory": "8gb",
+        "storage": "16gb"
+    }
+}
